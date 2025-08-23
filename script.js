@@ -1,8 +1,11 @@
-// --- CONFIG ---
-const GIST_ID = '7fe0880b106e927982df30f2345248d3'; // Ganti dengan Gist kamu
-const GH_TOKEN = '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'; // Ganti dengan token GitHub kamu
+// === CONFIG ===
+const OWNER = 'ResellerGaming';        // Ganti dengan username kamu
+const REPO = 'telepon-l';         // Nama repo kamu
+const PATH = 'token.json';
+const BRANCH = 'main';                // atau 'master'
+const TOKEN = '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';         // Token PAT kamu
 
-// --- LOGIN ---
+// === LOGIN (hardcoded demo) ===
 function login() {
   const user = document.getElementById('username').value;
   const pass = document.getElementById('password').value;
@@ -14,65 +17,94 @@ function login() {
   }
 }
 
-// --- LOAD TOKEN DARI GIST ---
-async function loadTokens() {
-  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-  const data = await res.json();
-  const tokens = JSON.parse(data.files['token.json'].content);
-  renderTokens(tokens);
+// === UTILS ===
+async function apiGet(path) {
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      Accept: 'application/vnd.github+json'
+    }
+  });
+  if (!res.ok) throw new Error(res.statusText);
+  return res.json();
 }
 
-// --- UPDATE GIST ---
-async function updateGist(newTokens) {
-  await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    method: 'PATCH',
+async function apiPut(path, message, content, sha) {
+  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`;
+  const body = {
+    message,
+    content: btoa(content), // base64
+    branch: BRANCH,
+    sha
+  };
+  const res = await fetch(url, {
+    method: 'PUT',
     headers: {
-      Authorization: `token ${GH_TOKEN}`,
+      Authorization: `token ${TOKEN}`,
+      Accept: 'application/vnd.github+json',
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      files: {
-        'token.json': {
-          content: JSON.stringify(newTokens, null, 2)
-        }
-      }
-    })
+    body: JSON.stringify(body)
   });
-  loadTokens();
+  if (!res.ok) throw new Error(res.statusText);
+  return res.json();
 }
 
-// --- TAMBAH TOKEN ---
-async function addToken() {
-  const name = document.getElementById('botName').value.trim();
-  const token = document.getElementById('botToken').value.trim();
-  if (!name || !token) return alert('Isi semua!');
+// === CRUD ===
+let currentSha = null;
 
-  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-  const data = await res.json();
-  const tokens = JSON.parse(data.files['token.json'].content);
-
-  tokens.push({ bot_name: name, token });
-  await updateGist(tokens);
+async function loadTokens() {
+  try {
+    const data = await apiGet(PATH);
+    currentSha = data.sha;
+    const tokens = JSON.parse(atob(data.content));
+    renderTokens(tokens);
+  } catch (err) {
+    alert('Gagal load token: ' + err.message);
+  }
 }
 
-// --- HAPUS TOKEN ---
-async function deleteToken(index) {
-  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-  const data = await res.json();
-  const tokens = JSON.parse(data.files['token.json'].content);
-
-  tokens.splice(index, 1);
-  await updateGist(tokens);
+async function saveTokens(tokens) {
+  try {
+    const content = JSON.stringify(tokens, null, 2);
+    await apiPut(PATH, 'Update token.json via API', content, currentSha);
+    await loadTokens();
+  } catch (err) {
+    alert('Gagal simpan token: ' + err.message);
+  }
 }
 
-// --- RENDER TOKEN ---
 function renderTokens(tokens) {
   const list = document.getElementById('tokenList');
   list.innerHTML = '';
   tokens.forEach((t, i) => {
     const li = document.createElement('li');
-    li.innerHTML = `${t.bot_name}: ${t.token} 
+    li.innerHTML = `${t.bot_name}: ${t.token}
       <button onclick="deleteToken(${i})">Hapus</button>`;
     list.appendChild(li);
   });
+}
+
+async function addToken() {
+  const name = document.getElementById('botName').value.trim();
+  const token = document.getElementById('botToken').value.trim();
+  if (!name || !token) return alert('Isi semua!');
+
+  const data = await apiGet(PATH);
+  currentSha = data.sha;
+  const tokens = JSON.parse(atob(data.content));
+  tokens.push({ bot_name: name, token });
+  await saveTokens(tokens);
+
+  document.getElementById('botName').value = '';
+  document.getElementById('botToken').value = '';
+}
+
+async function deleteToken(index) {
+  const data = await apiGet(PATH);
+  currentSha = data.sha;
+  const tokens = JSON.parse(atob(data.content));
+  tokens.splice(index, 1);
+  await saveTokens(tokens);
 }
