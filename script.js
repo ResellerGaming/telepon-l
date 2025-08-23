@@ -1,65 +1,78 @@
-// --- CONFIG LOGIN ---
-const USERNAME = 'admin';
-const PASSWORD = '123456';
+// --- CONFIG ---
+const GIST_ID = 'YOUR_GIST_ID'; // Ganti dengan Gist kamu
+const GH_TOKEN = 'YOUR_GITHUB_TOKEN'; // Ganti dengan token GitHub kamu
 
-// --- LOGIN HANDLER ---
+// --- LOGIN ---
 function login() {
   const user = document.getElementById('username').value;
   const pass = document.getElementById('password').value;
-
-  if (user === USERNAME && pass === PASSWORD) {
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('tokenManager').classList.remove('hidden');
+  if (user === 'admin' && pass === '123456') {
+    document.getElementById('panel').style.display = 'block';
     loadTokens();
   } else {
-    document.getElementById('loginError').innerText = 'Login gagal!';
+    alert('Login gagal!');
   }
 }
 
-// --- TOKEN CRUD ---
-function getTokens() {
-  const data = localStorage.getItem('tokens');
-  return data ? JSON.parse(data) : [];
+// --- LOAD TOKEN DARI GIST ---
+async function loadTokens() {
+  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+  const data = await res.json();
+  const tokens = JSON.parse(data.files['token.json'].content);
+  renderTokens(tokens);
 }
 
-function saveTokens(tokens) {
-  localStorage.setItem('tokens', JSON.stringify(tokens, null, 2));
-}
-
-function loadTokens() {
-  const list = document.getElementById('tokenList');
-  list.innerHTML = '';
-  const tokens = getTokens();
-
-  tokens.forEach((t, index) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>${t.bot_name}</strong>: ${t.token} 
-      <button onclick="deleteToken(${index})">Hapus</button>`;
-    list.appendChild(li);
+// --- UPDATE GIST ---
+async function updateGist(newTokens) {
+  await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `token ${GH_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      files: {
+        'token.json': {
+          content: JSON.stringify(newTokens, null, 2)
+        }
+      }
+    })
   });
+  loadTokens();
 }
 
-function addToken() {
+// --- TAMBAH TOKEN ---
+async function addToken() {
   const name = document.getElementById('botName').value.trim();
   const token = document.getElementById('botToken').value.trim();
+  if (!name || !token) return alert('Isi semua!');
 
-  if (!name || !token) {
-    alert('Nama dan token harus diisi!');
-    return;
-  }
+  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+  const data = await res.json();
+  const tokens = JSON.parse(data.files['token.json'].content);
 
-  const tokens = getTokens();
   tokens.push({ bot_name: name, token });
-  saveTokens(tokens);
-  loadTokens();
-
-  document.getElementById('botName').value = '';
-  document.getElementById('botToken').value = '';
+  await updateGist(tokens);
 }
 
-function deleteToken(index) {
-  const tokens = getTokens();
+// --- HAPUS TOKEN ---
+async function deleteToken(index) {
+  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+  const data = await res.json();
+  const tokens = JSON.parse(data.files['token.json'].content);
+
   tokens.splice(index, 1);
-  saveTokens(tokens);
-  loadTokens();
+  await updateGist(tokens);
+}
+
+// --- RENDER TOKEN ---
+function renderTokens(tokens) {
+  const list = document.getElementById('tokenList');
+  list.innerHTML = '';
+  tokens.forEach((t, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `${t.bot_name}: ${t.token} 
+      <button onclick="deleteToken(${i})">Hapus</button>`;
+    list.appendChild(li);
+  });
 }
