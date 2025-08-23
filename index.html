@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bot Token Manager</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .hidden { display: none; }
+    input, button { margin: 5px 0; padding: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="loginForm">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <p id="loginError" style="color:red"></p>
+  </div>
+
+  <!-- MANAJEMEN TOKEN -->
+  <div id="tokenManager" class="hidden">
+    <h2>Manajemen Token Bot Telegram</h2>
+    <input type="text" id="botName" placeholder="Nama Bot" />
+    <input type="text" id="botToken" placeholder="Token Bot" />
+    <button onclick="addToken()">Tambah Token</button>
+
+    <h3>Daftar Token</h3>
+    <ul id="tokenList"></ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
