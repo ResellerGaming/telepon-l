@@ -1,6 +1,6 @@
 // --- CONFIG ---
-const GIST_ID = 'YOUR_GIST_ID'; // Ganti dengan Gist kamu
-const GH_TOKEN = 'YOUR_GITHUB_TOKEN'; // Ganti dengan token GitHub kamu
+const GIST_ID = '7fe0880b106e927982df30f2345248d3'; // Ganti dengan Gist kamu
+const GH_TOKEN = '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'; // Ganti dengan token GitHub kamu
 
 // --- LOGIN ---
 function login() {
