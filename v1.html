@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Image Generator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+    }
+
+    .page {
+      display: none;
+      padding: 40px 20px;
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      color: #333;
+      border-radius: 15px;
+      margin-top: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .active {
+      display: block;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 15px;
+      background: #667eea;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .loading-box {
+      text-align: center;
+      color: white;
+    }
+
+    .loading-box div {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin: 0 6px;
+      background: #fff;
+      border-radius: 50%;
+      animation: bounce 1s infinite alternate;
+    }
+
+    .loading-box div:nth-child(2) { animation-delay: 0.2s; }
+    .loading-box div:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      to { transform: translateY(-30px); }
+    }
+
+    .result img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    a.button {
+      display: inline-block;
+      margin-top: 20px;
+      background: #764ba2;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .preset-item {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .preset-item.selected {
+      background-color: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Halaman Input -->
+  <div id="page1" class="page active">
+    <h1>🎨 AI Image Generator</h1>
+    <form id="imageForm">
+      <label>Prompt:</label>
+      <textarea id="prompt" required placeholder="Contoh: anime girl with white hair and blue eyes"></textarea>
+
+      <label>Negative Prompt (opsional):</label>
+      <input type="text" id="negativePrompt" placeholder="Misalnya: blur, bad anatomy" />
+
+      <label>Preset Style:</label>
+      <div class="preset-grid" id="presetGrid"></div>
+
+      <label>Orientasi:</label>
+      <select id="orientation">
+        <option value="portrait">Portrait (768x1024)</option>
+        <option value="landscape">Landscape (1024x768)</option>
+        <option value="square">Square (1024x1024)</option>
+        <option value="widescreen">Widescreen (1280x720)</option>
+        <option value="ultra">Ultra (1536x1536)</option>
+      </select>
+
+      <button type="submit" id="generateBtn">Generate Image</button>
+    </form>
+  </div>
+
+  <!-- Halaman Hasil -->
+  <div id="page2" class="page">
+    <h1>✅ Gambar Berhasil Dibuat</h1>
+    <div id="resultContent"></div>
+    <a href="#" class="button" onclick="goBack()">← Kembali</a>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-box">
+      <div></div><div></div><div></div>
+      <p>⏳ Sedang membuat gambar...</p>
+    </div>
+  </div>
+
+  <script>
+    const presets = [
+      "none", "3d-model", "abstract", "advertising", "alien", "analog-film", "anime", "architectural",
+      "artnouveau", "baroque", "black-white-film-portrait", "cinematic", "collage", "comic-book", "craft-clay",
+      "cubist", "dark-portrait-realism", "dark-realism", "digital-art", "disco", "dreamscape", "dystopian",
+      "enhance", "fairy-tale", "fantasy-art", "fighting-game", "filmnoir", "flat-papercut", "food-photography",
+      "gothic", "graffiti", "grunge", "gta", "hdr", "horror", "hyperrealism", "impressionist", "industrialfashion",
+      "isometric-style", "light-portrait-realism", "light-realism", "line-art", "long-exposure", "minecraft",
+      "minimalist", "monochrome", "nautical", "neon-noir", "neon-punk", "origami", "paper-mache", "papercut-collage",
+      "papercut-shadow-box", "photographic", "pixel-art", "pointillism", "pokémon", "pop-art", "psychedelic",
+      "real-estate", "renaissance", "retro-arcade", "retro-game", "romanticism", "rpg-fantasy-game", "silhouette",
+      "space", "stacked-papercut", "stained-glass", "steampunk", "strategy-game", "street-fighter", "super-mario",
+      "surrealist", "techwear-fashion", "texture", "thick-layered-papercut", "tilt-shift", "tribal", "typography",
+      "vintagetravel", "watercolor"
+    ];
+
+    let selectedPreset = "anime";
+
+    function initPresets() {
+      const grid = document.getElementById('presetGrid');
+      presets.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'preset-item';
+        if (p === selectedPreset) div.classList.add('selected');
+        div.textContent = p;
+        div.onclick = () => {
+          document.querySelectorAll('.preset-item').forEach(i => i.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedPreset = p;
+        };
+        grid.appendChild(div);
+      });
+    }
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function downloadImage(url, filename) {
+  fetch(url)
+    .then(res => res.blob())
+    .then(blob => {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    })
+    .catch(() => alert('❌ Gagal mengunduh gambar.'));
+}
+
+    function goBack() {
+      showPage('page1');
+      document.getElementById('imageForm').reset();
+    }
+
+    document.getElementById('imageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const prompt = document.getElementById('prompt').value.trim();
+      const negativePrompt = document.getElementById('negativePrompt').value.trim();
+      const orientation = document.getElementById('orientation').value;
+
+      const loadingOverlay = document.getElementById('loadingOverlay');
+
+      loadingOverlay.style.display = 'flex';
+
+      try {
+        const url = `https://api.resellergaming.my.id/ai/linang?prompt=${encodeURIComponent(prompt)}&negative=${encodeURIComponent(negativePrompt)}&preset=${selectedPreset}&orientation=${orientation}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status && data.url && data.url.url) {
+          const resultContent = document.getElementById('resultContent');
+          resultContent.innerHTML = `
+            <p><strong>Creator:</strong> ${data.creator}</p>
+            <p><strong>Preset:</strong> ${data.preset} | <strong>Size:</strong> ${data.size}</p>
+            <img src="${data.url.url}" alt="Generated Image" style="max-width:100%; height:auto; border-radius:10px;" />
+            <br />
+            <a href="${data.url.url}" download="gambar_${Date.now()}.png">
+              <button onclick="downloadImage('${data.url.url}', 'gambar_${Date.now()}.png')">Download Gambar</button>
+            </a>
+          `;
+          showPage('page2');
+        } else {
+          alert('❌ Gagal membuat gambar. Coba lagi.');
+        }
+      } catch (err) {
+        alert('❌ Terjadi kesalahan: ' + err.message);
+      } finally {
+        loadingOverlay.style.display = 'none';
+      }
+    });
+
+    initPresets();
+  </script>
+</body>
+</html>
