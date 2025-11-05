@@ -779,7 +779,7 @@
                 <i class="fas fa-headset"></i> Kontak Admin
             </h2>
             <div class="contact-grid">
-                <div class="contact-item" onclick="openWhatsApp('085133939838')">
+                <div class="contact-item" onclick="openWhatsApp('6285133939838')">
                     <div class="contact-icon">
                         <i class="fab fa-whatsapp"></i>
                     </div>
@@ -790,7 +790,7 @@
                     </div>
                 </div>
                 
-                <div class="contact-item" onclick="openWhatsApp('081263348992')">
+                <div class="contact-item" onclick="openWhatsApp('6281263348992')">
                     <div class="contact-icon">
                         <i class="fab fa-whatsapp"></i>
                     </div>
@@ -834,6 +834,12 @@
             <i class="fas fa-music" id="musicIcon"></i>
         </div>
     </div>
+
+        <!-- Audio untuk musik latar -->
+<audio id="bgMusic" loop>
+    <source src="https://telepon-l.vercel.app/music.mp3" type="audio/mpeg">
+    Browser Anda tidak mendukung elemen audio.
+</audio>
 
     <!-- Notification -->
     <div class="notification" id="notification"></div>
@@ -961,23 +967,34 @@
             window.open(url, '_blank');
         }
 
-        // Music player simulation
-        let musicPlaying = false;
-        function toggleMusic() {
-            const musicPlayer = document.getElementById('musicPlayer');
-            const musicIcon = document.getElementById('musicIcon');
-            
-            musicPlaying = !musicPlaying;
-            
-            if (musicPlaying) {
+        // Music player - NYATA
+let musicPlaying = false;
+const bgMusic = document.getElementById('bgMusic'); // ambil elemen audio
+
+function toggleMusic() {
+    const musicPlayer = document.getElementById('musicPlayer');
+    const musicIcon = document.getElementById('musicIcon');
+
+    if (!musicPlaying) {
+        // coba putar
+        bgMusic.play()
+            .then(() => {
                 musicPlayer.classList.add('playing');
                 musicIcon.className = 'fas fa-pause';
                 showNotification('Music player aktif!');
-            } else {
-                musicPlayer.classList.remove('playing');
-                musicIcon.className = 'fas fa-music';
-                showNotification('Music player dihentikan!');
-            }
+                musicPlaying = true;
+            })
+            .catch(err => {
+                // autoplay diblokir browser
+                showNotification('Klik lagi untuk memutar musik.');
+            });
+    } else {
+        bgMusic.pause();
+        musicPlayer.classList.remove('playing');
+        musicIcon.className = 'fas fa-music';
+        showNotification('Music player dihentikan!');
+        musicPlaying = false;
+    }
         }
 
         // Add click effects to payment cards
@@ -1088,3 +1105,4 @@
 </body>
 
 </html>
+
